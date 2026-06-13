@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Clinic {
+  id               String            @id @default(uuid())
+  name             String            @unique
+  createdAt        DateTime          @default(now()) @map("created_at")
+  patients         Patient[]
+  treatmentRecords TreatmentRecord[]
+  appointments     Appointment[]
+
+  @@map("clinics")
+}
+
+model Patient {
+  id               String            @id @default(uuid())
+  patientCode      String            @unique @map("patient_code")
+  name             String
+  nameKana         String            @map("name_kana")
+  birthDate        DateTime          @map("birth_date") @db.Date
+  gender           String
+  phone            String?
+  email            String?
+  clinicId         String            @map("clinic_id")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  clinic           Clinic            @relation(fields: [clinicId], references: [id])
+  treatmentRecords TreatmentRecord[]
+  appointments     Appointment[]
+
+  @@index([patientCode])
+  @@index([clinicId])
+  @@map("patients")
+}
+
+model TreatmentRecord {
+  id            String   @id @default(uuid())
+  patientId     String   @map("patient_id")
+  clinicId      String   @map("clinic_id")
+  treatmentDate DateTime @map("treatment_date") @db.Date
+  toothArea     String   @map("tooth_area")
+  treatmentType String   @map("treatment_type")
+  doctorNote    String?  @map("doctor_note") @db.Text
+  source        String   @default("csv_import")
+  createdAt     DateTime @default(now()) @map("created_at")
+  patient       Patient  @relation(fields: [patientId], references: [id])
+  clinic        Clinic   @relation(fields: [clinicId], references: [id])
+
+  @@index([patientId])
+  @@index([clinicId])
+  @@index([treatmentDate])
+  @@map("treatment_records")
+}
+
+model Appointment {
+  id                  String   @id @default(uuid())
+  patientId           String   @map("patient_id")
+  clinicId            String   @map("clinic_id")
+  appointmentDatetime DateTime @map("appointment_datetime")
+  status              String
+  note                String?  @db.Text
+  source              String   @default("csv_import")
+  createdAt           DateTime @default(now()) @map("created_at")
+  patient             Patient  @relation(fields: [patientId], references: [id])
+  clinic              Clinic   @relation(fields: [clinicId], references: [id])
+
+  @@index([patientId])
+  @@index([clinicId])
+  @@map("appointments")
+}
+
+model ImportLog {
+  id          String   @id @default(uuid())
+  fileName    String   @map("file_name")
+  importType  String   @map("import_type")
+  totalRows   Int      @map("total_rows")
+  successRows Int      @map("success_rows")
+  errorRows   Int      @map("error_rows")
+  errorDetail Json?    @map("error_detail")
+  importedAt  DateTime @default(now()) @map("imported_at")
+
+  @@map("import_logs")
+}
